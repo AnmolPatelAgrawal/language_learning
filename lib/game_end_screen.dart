@@ -1,47 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'database_helper.dart';
+import 'session_data_manager.dart';
 import 'match_case_screen.dart'; // Import to use GameAttempt class
+import 'export_all_sessions_screen.dart'; // Import ExportAllSessionsScreen
 
-class GameEndScreen extends StatelessWidget {
+class GameEndScreen extends StatefulWidget {
   final List<GameAttempt> sessionAttempts;
 
   const GameEndScreen({super.key, required this.sessionAttempts});
 
+  @override
+  State<GameEndScreen> createState() => _GameEndScreenState();
+}
+
+class _GameEndScreenState extends State<GameEndScreen> {
   Future<void> _exportAndDownloadData(BuildContext context) async {
-    if (sessionAttempts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context); 
+
+    if (widget.sessionAttempts.isEmpty) {
+      if (!mounted) return; 
+      messenger.showSnackBar(
         const SnackBar(content: Text('No game data to download.')),
       );
       return;
     }
 
-    final DatabaseHelper dbHelper = DatabaseHelper();
+    final SessionDataManager dataManager = SessionDataManager();
     final String timestamp = DateFormat('yyyyMMdd_HHmmss_SSS').format(DateTime.now());
-    final String dbFileName = '$timestamp.db';
+    final String fileName = '$timestamp.json'; 
 
-    // Convert GameAttempt objects to List<Map<String, dynamic>>
-    final List<Map<String, dynamic>> attemptsToSave = sessionAttempts.map((attempt) => attempt.toMap()).toList();
+    final List<Map<String, dynamic>> attemptsToSave = widget.sessionAttempts.map((attempt) => attempt.toMap()).toList();
 
     try {
-      await dbHelper.saveAttemptsToNewDb(dbFileName, attemptsToSave);
-      print("Session data saved to $dbFileName.");
+      await dataManager.saveAttemptsToNewFile(fileName, attemptsToSave);
 
-      final String? csvContent = await dbHelper.exportAttemptsToCsv(dbFileName);
+      final String? csvContent = await dataManager.exportAttemptsToCsv(fileName);
+      String csvFileName = fileName.replaceAll('.json', '.csv'); // Declare here
+
       if (csvContent != null) {
-        final String csvFileName = dbFileName.replaceAll('.db', '.csv');
-        await dbHelper.downloadCsv(csvContent, csvFileName);
-        ScaffoldMessenger.of(context).showSnackBar(
+        await dataManager.downloadCsv(csvContent, csvFileName);
+        if (!mounted) return; 
+        messenger.showSnackBar(
           SnackBar(content: Text('Data downloaded as $csvFileName')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        if (!mounted) return; 
+        messenger.showSnackBar(
           const SnackBar(content: Text('Failed to generate CSV content.')),
         );
       }
     } catch (e) {
-      print("Error during data export and download: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return; 
+      messenger.showSnackBar(
         SnackBar(content: Text('Error downloading data: $e')),
       );
     }
@@ -64,7 +74,7 @@ class GameEndScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Total attempts: ${sessionAttempts.length}',
+              'Total attempts: ${widget.sessionAttempts.length}',
               style: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 30),
@@ -84,6 +94,16 @@ class GameEndScreen extends StatelessWidget {
                 Navigator.of(context).popUntil((route) => route.isFirst); // Go back to the first route (e.g., WelcomeScreen)
               },
               child: const Text('Play Again'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ExportAllSessionsScreen()),
+                );
+              },
+              child: const Text('View All Sessions'),
             ),
           ],
         ),

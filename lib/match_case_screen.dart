@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:math';
 import 'package:intl/intl.dart'; // For DateFormat in filename
-import 'database_helper.dart';   // Your updated DatabaseHelper
-import 'game_end_screen.dart';   // Import GameEndScreen
+import 'session_data_manager.dart'; // Your updated SessionDataManager
+import 'game_end_screen.dart'; // Import GameEndScreen
 
 // Helper class to store attempt data in memory
 class GameAttempt {
@@ -33,26 +33,28 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
   final double letterSize = 110.0;
   final double internalPadding = 10.0;
 
-  final List<String> _allPossibleLetters = List.generate(26, (index) => String.fromCharCode(index + 97));
+  final List<String> _allPossibleLetters =
+      List.generate(26, (index) => String.fromCharCode(index + 97));
   late String _currentTargetLetter;
   late List<String> _displayedOptionLetters;
 
   // --- ADDED FOR SESSION DATA COLLECTION & DB ---
-  final DatabaseHelper _dbHelper = DatabaseHelper();
-  final List<GameAttempt> _sessionAttempts = []; // List to store attempts for current session
+  final SessionDataManager _dataManager = SessionDataManager();
+  final List<GameAttempt> _sessionAttempts =
+      []; // List to store attempts for current session
   late DateTime _attemptStartTime;
   // --- END OF ADDED ---
 
   @override
   void initState() {
     super.initState();
-    print("MatchCaseScreen initState: New session started.");
     _sessionAttempts.clear(); // Ensure list is empty for a new session
     _startNewRound();
   }
 
   void _startNewRound() {
-    _currentTargetLetter = _allPossibleLetters[_random.nextInt(_allPossibleLetters.length)];
+    _currentTargetLetter =
+        _allPossibleLetters[_random.nextInt(_allPossibleLetters.length)];
     List<String> options = [_currentTargetLetter];
     List<String> tempList = List.from(_allPossibleLetters);
     tempList.remove(_currentTargetLetter);
@@ -72,9 +74,7 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
   void _playSound(String soundPath) async {
     try {
       await _audioPlayer.play(AssetSource(soundPath));
-      print("Playing sound: $soundPath");
     } catch (e) {
-      print("Error playing sound $soundPath: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error playing sound: $e')),
@@ -86,11 +86,12 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
   // --- MODIFIED TO COLLECT ATTEMPT DATA ---
   void _handleLetterTap(String selectedLetter) {
     bool isCorrect = (selectedLetter == _currentTargetLetter);
-    final int timeTakenMs = DateTime.now().difference(_attemptStartTime).inMilliseconds;
+    final int timeTakenMs =
+        DateTime.now().difference(_attemptStartTime).inMilliseconds;
 
     // Add attempt to session list
-    _sessionAttempts.add(GameAttempt(wasCorrect: isCorrect, timeTakenMs: timeTakenMs));
-    print("Attempt recorded in memory: Correct: $isCorrect, Time: $timeTakenMs ms. Total attempts: ${_sessionAttempts.length}");
+    _sessionAttempts
+        .add(GameAttempt(wasCorrect: isCorrect, timeTakenMs: timeTakenMs));
 
     _playSound(isCorrect ? 'sounds/success.wav' : 'sounds/failure.wav');
 
@@ -107,7 +108,7 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
         width: letterSize,
         height: letterSize,
         margin: const EdgeInsets.all(8.0),
-        color: Color(0xFFAF4128),
+        color: const Color(0xFFAF4128),
         alignment: Alignment.center,
         child: Text(
           letter,
@@ -115,7 +116,7 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.w900,
             fontSize: letterSize * 0.8,
-            color: Color(0xFFF4EFEC),
+            color: const Color(0xFFF4EFEC),
           ),
         ),
       ),
@@ -136,7 +137,8 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
                 // Navigate to GameEndScreen and pass session attempts
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => GameEndScreen(sessionAttempts: _sessionAttempts),
+                    builder: (context) =>
+                        GameEndScreen(sessionAttempts: _sessionAttempts),
                   ),
                 );
               },
@@ -173,12 +175,14 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
                     const SizedBox(height: 10),
                     GestureDetector(
                       onTap: () {
-                        _playSound('sounds/${_currentTargetLetter.toUpperCase()}.wav');
+                        _playSound(
+                            'sounds/${_currentTargetLetter.toUpperCase()}.wav');
                         // print("Tapped on ${_currentTargetLetter.toUpperCase()} sound icon");
-                         if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Playing letter sound')),
-                            );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Playing letter sound')),
+                          );
                         }
                       },
                       child: Image.network(
@@ -186,7 +190,8 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
                         width: 36,
                         height: 36,
                         errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.error, color: Colors.red, size: 36);
+                          return const Icon(Icons.error,
+                              color: Colors.red, size: 36);
                         },
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
@@ -212,13 +217,16 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     List<Widget> letterWidgets = [];
-                    final int numberOfColumns = 3;
-                    final int numberOfRows = 2;
+                    const int numberOfColumns = 3;
+                    const int numberOfRows = 2;
                     double cellWidth = constraints.maxWidth / numberOfColumns;
                     double cellHeight = constraints.maxHeight / numberOfRows;
 
-                    if (_displayedOptionLetters == null || _displayedOptionLetters.isEmpty) { // Safety check
-                        return const Center(child: Text("Loading letters...", style: TextStyle(color: Colors.white)));
+                    if (_displayedOptionLetters.isEmpty) {
+                      // Safety check
+                      return const Center(
+                          child: Text("Loading letters...",
+                              style: TextStyle(color: Colors.white)));
                     }
 
                     for (int i = 0; i < _displayedOptionLetters.length; i++) {
@@ -235,24 +243,27 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
                       double randomOffsetY = (randomPlacementRangeY > 0)
                           ? _random.nextDouble() * randomPlacementRangeY
                           : 0.0;
-                      
-                      if (randomPlacementRangeX <=0) {
+
+                      if (randomPlacementRangeX <= 0) {
                         randomOffsetX = (cellWidth - letterSize) / 2.0;
                       }
-                       if (randomPlacementRangeY <=0) {
+                      if (randomPlacementRangeY <= 0) {
                         randomOffsetY = (cellHeight - letterSize) / 2.0;
                       }
 
                       double finalLeft = baseCellX + randomOffsetX;
                       double finalTop = baseCellY + randomOffsetY;
-                      finalLeft = max(0, min(finalLeft, constraints.maxWidth - letterSize));
-                      finalTop = max(0, min(finalTop, constraints.maxHeight - letterSize));
-                      
+                      finalLeft = max(
+                          0, min(finalLeft, constraints.maxWidth - letterSize));
+                      finalTop = max(
+                          0, min(finalTop, constraints.maxHeight - letterSize));
+
                       letterWidgets.add(
                         Positioned(
                           top: finalTop,
                           left: finalLeft,
-                          child: _buildLetterButton(letter, letter == _currentTargetLetter),
+                          child: _buildLetterButton(
+                              letter, letter == _currentTargetLetter),
                         ),
                       );
                     }
@@ -271,22 +282,20 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
 
   @override
   void dispose() {
-    print("MatchCaseScreen dispose: Session ending. Saving attempts.");
-    // --- ADDED: Save collected attempts to a new DB file ---
+    // --- ADDED: Save collected attempts to a new JSON file ---
     if (_sessionAttempts.isNotEmpty) {
-      final String timestamp = DateFormat('yyyyMMdd_HHmmss_SSS').format(DateTime.now()); // Timestamp for end of test
-      final String dbFileName = '$timestamp.db';
-      
+      final String timestamp = DateFormat('yyyyMMdd_HHmmss_SSS')
+          .format(DateTime.now()); // Timestamp for end of test
+      final String fileName = '$timestamp.json'; // Use .json extension
+
       // Convert GameAttempt objects to List<Map<String, dynamic>>
-      final List<Map<String, dynamic>> attemptsToSave = _sessionAttempts.map((attempt) => attempt.toMap()).toList();
-      
-      _dbHelper.saveAttemptsToNewDb(dbFileName, attemptsToSave)
-          .then((_) => print("Session saving process initiated for $dbFileName."));
-    } else {
-      print("No attempts in this session to save.");
+      final List<Map<String, dynamic>> attemptsToSave =
+          _sessionAttempts.map((attempt) => attempt.toMap()).toList();
+
+      _dataManager.saveAttemptsToNewFile(fileName, attemptsToSave);
     }
     // --- END OF ADDED ---
-    
+
     _audioPlayer.dispose();
     super.dispose();
   }
