@@ -3,6 +3,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'dart:math';
 import 'package:intl/intl.dart'; // For DateFormat in filename
 import 'database_helper.dart';   // Your updated DatabaseHelper
+import 'game_end_screen.dart';   // Import GameEndScreen
 
 // Helper class to store attempt data in memory
 class GameAttempt {
@@ -93,11 +94,6 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
 
     _playSound(isCorrect ? 'sounds/success.wav' : 'sounds/failure.wav');
 
-    // if (mounted) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Tapped: $selectedLetter. Correct: $isCorrect. Time: ${timeTakenMs / 1000}s')),
-    //   );
-    // }
     _startNewRound();
   }
   // --- END OF MODIFICATION ---
@@ -128,16 +124,32 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentTargetLetter == null || _displayedOptionLetters == null) {
-      _startNewRound();
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
-      // appBar: AppBar(
-      //   automaticallyImplyLeading: false,
-      // ),
-      appBar: null,
+      appBar: AppBar(
+        title: const Text('Match the Case'),
+        automaticallyImplyLeading: true, // Show back button
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                // Navigate to GameEndScreen and pass session attempts
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => GameEndScreen(sessionAttempts: _sessionAttempts),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.exit_to_app),
+              label: const Text('Exit Game'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Example styling
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Row(
         // ... (UI structure remains unchanged, only showing relevant parts below)
         children: [
@@ -236,13 +248,6 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
                       finalLeft = max(0, min(finalLeft, constraints.maxWidth - letterSize));
                       finalTop = max(0, min(finalTop, constraints.maxHeight - letterSize));
                       
-                      if (letterSize > cellWidth) {
-                          print("Warning: Letter '$letter' (width ${letterSize.toStringAsFixed(1)}) is wider than its allocated cell width (${cellWidth.toStringAsFixed(1)}).");
-                      }
-                      if (letterSize > cellHeight) {
-                          print("Warning: Letter '$letter' (height ${letterSize.toStringAsFixed(1)}) is taller than its allocated cell height (${cellHeight.toStringAsFixed(1)}).");
-                      }
-
                       letterWidgets.add(
                         Positioned(
                           top: finalTop,
@@ -251,28 +256,8 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
                         ),
                       );
                     }
-
-                    // --- START OF CODE BLOCK FOR CUSTOM BACK ARROW ---
-                    Widget customBackButton = Positioned(
-                      top: 8,  // Adjust as needed for desired vertical padding from the top of the red zone
-                      left: 8, // Adjust as needed for desired horizontal padding from the left of the red zone
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back), // Or Icons.arrow_back
-                        color: const Color(0xFFFDF4EB), // Your beige color (scaffoldBackgroundColor from main.dart)
-                        iconSize: 30.0, // Adjust size as needed
-                        onPressed: () {
-                          if (Navigator.canPop(context)) {
-                            Navigator.pop(context);
-                          }
-                        },
-                        // Optional: Add padding to increase tappable area without making icon huge
-                        // padding: EdgeInsets.all(12.0),
-                        // constraints: BoxConstraints(), // To remove default IconButton padding if needed
-                      ),
-                    );
-                    // --- END OF CODE BLOCK FOR CUSTOM BACK ARROW ---
                     return Stack(
-                      children: [customBackButton, ...letterWidgets],
+                      children: [...letterWidgets],
                     );
                   },
                 ),
@@ -297,7 +282,6 @@ class MatchCaseScreenState extends State<MatchCaseScreen> {
       
       _dbHelper.saveAttemptsToNewDb(dbFileName, attemptsToSave)
           .then((_) => print("Session saving process initiated for $dbFileName."));
-          // .catchError((e) => print("Error during session saving initiation: $e"));
     } else {
       print("No attempts in this session to save.");
     }

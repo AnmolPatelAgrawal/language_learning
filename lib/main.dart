@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'match_the_case_screen.dart'; 
 
 void main() {
-  runApp(const MainApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  // Allow all orientations by not setting preferred orientations
+  runApp(const MyApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
+    return MaterialApp(
+      title: 'Mtach The Case',
+      theme: ThemeData(
+        primaryColor: const Color(0xFFF57D31),
+        scaffoldBackgroundColor: const Color(0xFFFDF4EB),
       ),
+      debugShowCheckedModeBanner: false,
+      home: const MatchTheCaseScreen(), // Set the home property
     );
   }
 }
